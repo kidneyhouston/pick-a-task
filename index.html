@@ -14,20 +14,15 @@
   See SETUP.md for the full walkthrough.
 ============================================================= -->
 <script>
- const firebaseConfig = {
-  apiKey: "AIzaSyCuDd6GBsYj9FBu0pitKaGcXDYsLZyYpWw",
-  authDomain: "pick-a-task.firebaseapp.com",
-  databaseURL: "https://pick-a-task-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pick-a-task",
-  storageBucket: "pick-a-task.firebasestorage.app",
-  messagingSenderId: "615640304303",
-  appId: "1:615640304303:web:4b75be2e23185d6b95225a",
-  measurementId: "G-PY0GSBGHJZ"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+  window.FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCuDd6GBsYj9FBu0pitKaGcXDYsLZyYpWw",
+    authDomain: "pick-a-task.firebaseapp.com",
+    databaseURL: "https://pick-a-task-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "pick-a-task",
+    storageBucket: "pick-a-task.firebasestorage.app",
+    messagingSenderId: "615640304303",
+    appId: "1:615640304303:web:4b75be2e23185d6b95225a"
+  };
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
