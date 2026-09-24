@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Holiday Tasks</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232F6659'/%3E%3Ctext x='50' y='65' font-size='55' text-anchor='middle' fill='white' font-family='sans-serif'%3E%E2%9C%93%3C/text%3E%3C/svg%3E" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+<!-- ============================================================
+  FIREBASE SETUP: replace the object below with the config you
+  copy from Firebase Console > Project settings > Your apps > Web app.
+  See SETUP.md for the full walkthrough.
+============================================================= -->
+<script>
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCuDd6GBsYj9FBu0pitKaGcXDYsLZyYpWw",
+  authDomain: "pick-a-task.firebaseapp.com",
+  databaseURL: "https://pick-a-task-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "pick-a-task",
+  storageBucket: "pick-a-task.firebasestorage.app",
+  messagingSenderId: "615640304303",
+  appId: "1:615640304303:web:4b75be2e23185d6b95225a",
+  measurementId: "G-PY0GSBGHJZ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #EFEAE0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #24291F;
+    padding: max(20px, env(safe-area-inset-top)) 16px 40px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  textarea, input { font-family: inherit; }
+  h1, h2, h3, p { margin: 0; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #DBD3C2; }
+  .tab-btn {
+    flex: 1; padding: 10px 8px 12px; background: none; border: none;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    font-size: 15px; font-weight: 600; color: #8A8272;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .status-line { font-size: 11px; color: #8A8272; margin-bottom: 14px; min-height: 14px; }
+  .status-line.offline { color: #B5482F; }
+
+  .section-label { font-size: 13px; font-weight: 500; color: #8A8272; margin-bottom: 8px; }
+  section { margin-bottom: 26px; }
+
+  .focus-card {
+    background: #FBF9F4; border: 1px solid var(--accent-soft); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 18px 18px 16px;
+  }
+  .focus-empty {
+    border: 1px dashed #C9BFA9; border-radius: 10px; padding: 22px 18px;
+    text-align: center; color: #8A8272; font-size: 14px;
+  }
+  .focus-title { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; line-height: 1.25; margin-bottom: 6px; }
+  .focus-desc { font-size: 14px; color: #5C5646; line-height: 1.5; margin-bottom: 14px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 600; }
+  .btn-secondary { background: none; border: 1px solid #DBD3C2; border-radius: 7px; padding: 8px 14px; font-size: 13px; color: #5C5646; }
+  .btn-text { background: none; border: none; color: #8A8272; font-size: 13px; padding: 8px 4px; }
+
+  .row {
+    background: #FBF9F4; border: 1px solid #E4DECE; border-radius: 9px;
+    padding: 12px 12px 12px 8px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+  }
+  .row.dragging { opacity: 0.5; }
+  .arrows { display: flex; flex-direction: column; gap: 1px; margin-right: 2px; }
+  .arrow-btn { background: none; border: none; color: #8A8272; font-size: 11px; padding: 2px 4px; line-height: 1; }
+  .arrow-btn:disabled { color: #DBD3C2; }
+  .handle { background: none; border: none; color: #C9BFA9; font-size: 16px; padding: 0 4px; touch-action: none; cursor: grab; }
+  .row-title { font-size: 15px; font-weight: 600; }
+  .row-desc { font-size: 13px; color: #8A8272; margin-top: 2px; }
+  .row-body { flex: 1; min-width: 0; }
+  .chip-btn { background: var(--accent-soft); color: var(--accent); border: none; border-radius: 7px; padding: 7px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .icon-btn { background: none; border: none; color: #8A8272; font-size: 13px; padding: 0 2px; }
+  .delete-btn { background: none; border: none; color: #C9BFA9; font-size: 16px; padding: 0 2px; line-height: 1; }
+
+  .edit-box { background: #FBF9F4; border: 1px solid var(--accent); border-radius: 9px; padding: 12px; margin-bottom: 8px; }
+  .edit-box input, .edit-box textarea { width: 100%; border: 1px solid #E4DECE; border-radius: 7px; padding: 8px 9px; font-size: 14px; background: #fff; margin-bottom: 6px; }
+  .edit-box input { font-weight: 600; }
+
+  form.add-form { background: #FBF9F4; border: 1px solid #E4DECE; border-radius: 10px; padding: 14px; }
+  .add-form input, .add-form textarea { width: 100%; border: 1px solid #E4DECE; border-radius: 7px; padding: 9px 10px; font-size: 14px; margin-bottom: 8px; background: #fff; }
+
+  .archive-toggle { background: none; border: none; color: #8A8272; font-size: 13px; font-weight: 500; padding: 0; }
+  .archive-item { font-size: 14px; color: #8A8272; text-decoration: line-through; padding: 6px 2px; }
+
+  .banner { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .banner.error { background: #FBE9E4; color: #8A3A24; }
+  .banner.setup { background: #FFF6DC; color: #6B5417; }
+</style>
+</head>
+<body>
+  <div id="app">Loading…</div>
+
+<script>
+(function () {
+  var PEOPLE = [
+    { id: "lukas", label: "Lukas", accent: "#2F6659", accentSoft: "#E4EEE9" },
+    { id: "aga", label: "Aga", accent: "#B5482F", accentSoft: "#F4E5DE" }
+  ];
+  var SEED_TASKS = [
+    { title: "Fix the squeaky door hinge", description: "Oil it or swap the hinge pin — it wakes the whole flat." },
+    { title: "Sort the basement storage", description: "Clear out what we don't need, label the rest." },
+    { title: "Touch up the bathroom grout", description: "A few tiles near the shower have gone patchy." },
+    { title: "Assemble the new bookshelf", description: "Box's been in the hallway for two weeks now." }
+  ];
+
+  var appEl = document.getElementById("app");
+  var cfg = window.FIREBASE_CONFIG;
+  var configLooksUnset = !cfg || cfg.apiKey === "PASTE_YOUR_API_KEY";
+
+  if (configLooksUnset) {
+    appEl.innerHTML =
+      '<div class="banner setup">' +
+      '<strong>Setup needed.</strong> Open index.html and paste your Firebase config ' +
+      'near the top of the file (see SETUP.md for the exact steps), then reload this page.' +
+      "</div>";
+    return;
+  }
+
+  firebase.initializeApp(cfg);
+  var db = firebase.database();
+
+  var state = {
+    activeTab: "lukas",
+    tasks: { lukas: null, aga: null }, // null = not loaded yet
+    editingId: null,
+    editDraft: { title: "", description: "" },
+    dragId: null,
+    dragOrderIds: null,
+    connected: true
+  };
+
+  function makeId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  // ---- Firebase wiring ----
+  PEOPLE.forEach(function (p) {
+    var ref = db.ref("tasks/" + p.id);
+    ref.on("value", function (snap) {
+      var val = snap.val();
+      if (val === null) {
+        // Nothing saved yet for this person — seed once.
+        var seeded = {};
+        SEED_TASKS.forEach(function (t, i) {
+          var id = makeId();
+          seeded[id] = {
+            title: t.title,
+            description: t.description,
+            status: "pending",
+            order: i,
+            createdAt: Date.now()
+          };
+        });
+        ref.set(seeded);
+        return; // the .set() above will re-trigger this same listener with real data
+      }
+      state.tasks[p.id] = val;
+      render();
+    });
+  });
+
+  db.ref(".info/connected").on("value", function (snap) {
+    state.connected = !!snap.val();
+    render();
+  });
+
+  function personTasksArray(personId) {
+    var obj = state.tasks[personId] || {};
+    return Object.keys(obj).map(function (id) {
+      return Object.assign({ id: id }, obj[id]);
+    });
+  }
+
+  // ---- Actions ----
+  function addTask(personId, title, description) {
+    var arr = personTasksArray(personId);
+    var maxOrder = arr.filter(function (t) { return t.status === "pending"; })
+      .reduce(function (m, t) { return Math.max(m, t.order || 0); }, -1);
+    var id = makeId();
+    var update = {};
+    update["tasks/" + personId + "/" + id] = {
+      title: title, description: description, status: "pending",
+      order: maxOrder + 1, createdAt: Date.now()
+    };
+    db.ref().update(update);
+  }
+
+  function chooseTask(personId, id) {
+    var arr = personTasksArray(personId);
+    var update = {};
+    arr.forEach(function (t) {
+      if (t.id === id) update["tasks/" + personId + "/" + id + "/status"] = "chosen";
+      else if (t.status === "chosen") update["tasks/" + personId + "/" + t.id + "/status"] = "pending";
+    });
+    db.ref().update(update);
+  }
+
+  function unchooseTask(personId, id) {
+    db.ref("tasks/" + personId + "/" + id + "/status").set("pending");
+  }
+
+  function markDone(personId, id) {
+    db.ref("tasks/" + personId + "/" + id + "/status").set("done");
+  }
+
+  function deleteTask(personId, id) {
+    db.ref("tasks/" + personId + "/" + id).remove();
+  }
+
+  function saveEdit(personId, id, title, description) {
+    db.ref("tasks/" + personId + "/" + id).update({ title: title, description: description });
+  }
+
+  function reorderPending(personId, orderedIds) {
+    var update = {};
+    orderedIds.forEach(function (id, i) {
+      update["tasks/" + personId + "/" + id + "/order"] = i;
+    });
+    db.ref().update(update);
+  }
+
+  // ---- Rendering ----
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : s;
+    return d.innerHTML;
+  }
+
+  function render() {
+    var activeTab = state.activeTab;
+    var person = PEOPLE.filter(function (p) { return p.id === activeTab; })[0];
+    var loaded = state.tasks[activeTab] !== null;
+
+    var html = "";
+    html += '<div class="tabs">';
+    PEOPLE.forEach(function (p) {
+      html += '<button class="tab-btn ' + (p.id === activeTab ? "active" : "") + '" ' +
+        'style="--accent:' + p.accent + '" data-tab="' + p.id + '">' + p.label + "</button>";
+    });
+    html += "</div>";
+
+    html += '<div class="status-line ' + (state.connected ? "" : "offline") + '">' +
+      (state.connected ? "Synced" : "Offline — changes will sync once you're back online") + "</div>";
+
+    if (!loaded) {
+      html += '<div style="text-align:center;padding:40px 0;color:#8A8272;">Loading tasks…</div>';
+      appEl.innerHTML = html;
+      return;
+    }
+
+    var all = personTasksArray(activeTab);
+    var chosen = all.filter(function (t) { return t.status === "chosen"; })[0];
+    var pending = all.filter(function (t) { return t.status === "pending"; })
+      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var done = all.filter(function (t) { return t.status === "done"; });
+    var displayPending = state.dragOrderIds
+      ? state.dragOrderIds.map(function (id) { return pending.filter(function (t) { return t.id === id; })[0]; }).filter(Boolean)
+      : pending;
+
+    html += '<section style="--accent:' + person.accent + ';--accent-soft:' + person.accentSoft + '">';
+    html += '<div class="section-label">Tomorrow\'s task</div>';
+    if (chosen) {
+      if (state.editingId === chosen.id) {
+        html += editBoxHtml(chosen);
+      } else {
+        html += '<div class="focus-card">' +
+          '<div class="focus-title">' + esc(chosen.title) + "</div>" +
+          (chosen.description ? '<div class="focus-desc">' + esc(chosen.description) + "</div>" : "") +
+          '<div class="btn-row">' +
+          '<button class="btn-primary" data-action="done" data-id="' + chosen.id + '">Mark done</button>' +
+          '<button class="btn-secondary" data-action="unchoose" data-id="' + chosen.id + '">Put back</button>' +
+          '<button class="btn-text" data-action="edit" data-id="' + chosen.id + '">Edit</button>' +
+          "</div></div>";
+      }
+    } else {
+      html += '<div class="focus-empty">Nothing picked yet — choose a task below tonight, and it\'ll be waiting for you here in the morning.</div>';
+    }
+    html += "</section>";
+
+    html += '<section style="--accent:' + person.accent + ';--accent-soft:' + person.accentSoft + '">';
+    html += '<div class="section-label">Pick tonight\'s task (' + pending.length + ")</div>";
+    if (pending.length === 0) {
+      html += '<div style="font-size:14px;color:#8A8272;padding:8px 2px;">No tasks waiting — add one below.</div>';
+    } else {
+      displayPending.forEach(function (t, i) {
+        if (state.editingId === t.id) {
+          html += editBoxHtml(t);
+        } else {
+          html += '<div class="row ' + (state.dragId === t.id ? "dragging" : "") + '" data-row-id="' + t.id + '">' +
+            '<div class="arrows">' +
+            '<button class="arrow-btn" data-action="up" data-id="' + t.id + '" ' + (i === 0 ? "disabled" : "") + ">▲</button>" +
+            '<button class="arrow-btn" data-action="down" data-id="' + t.id + '" ' + (i === displayPending.length - 1 ? "disabled" : "") + ">▼</button>" +
+            "</div>" +
+            '<button class="handle" data-action="drag-handle" data-id="' + t.id + '">⠿</button>' +
+            '<div class="row-body"><div class="row-title">' + esc(t.title) + "</div>" +
+            (t.description ? '<div class="row-desc">' + esc(t.description) + "</div>" : "") + "</div>" +
+            '<button class="chip-btn" data-action="choose" data-id="' + t.id + '">Choose</button>' +
+            '<button class="icon-btn" data-action="edit" data-id="' + t.id + '">Edit</button>' +
+            '<button class="delete-btn" data-action="delete" data-id="' + t.id + '">×</button>' +
+            "</div>";
+        }
+      });
+    }
+    html += "</section>";
+
+    html += '<section style="--accent:' + person.accent + '">' +
+      '<div class="section-label">Add a task</div>' +
+      '<form class="add-form" id="add-form">' +
+      '<input type="text" id="new-title" placeholder="Task title" />' +
+      '<textarea id="new-desc" rows="2" placeholder="A little more detail (optional)"></textarea>' +
+      '<button type="submit" class="btn-primary">Add to ' + person.label + "'s list</button>" +
+      "</form></section>";
+
+    if (done.length > 0) {
+      html += "<section>" +
+        '<button class="archive-toggle" id="toggle-archive">' + (state.showArchive ? "Hide" : "Show") + " done (" + done.length + ")</button>";
+      if (state.showArchive) {
+        html += '<div style="margin-top:8px;">';
+        done.forEach(function (t) { html += '<div class="archive-item">' + esc(t.title) + "</div>"; });
+        html += "</div>";
+      }
+      html += "</section>";
+    }
+
+    appEl.innerHTML = html;
+    wireEvents(activeTab, displayPending);
+  }
+
+  function editBoxHtml(t) {
+    return '<div class="edit-box">' +
+      '<input type="text" id="edit-title-input" value="' + esc(t.title) + '" />' +
+      '<textarea id="edit-desc-input" rows="2" placeholder="A little more detail (optional)">' + esc(t.description || "") + "</textarea>" +
+      '<div class="btn-row">' +
+      '<button class="btn-primary" data-action="save-edit" data-id="' + t.id + '">Save</button>' +
+      '<button class="btn-secondary" data-action="cancel-edit">Cancel</button>' +
+      "</div></div>";
+  }
+
+  function wireEvents(activeTab, displayPending) {
+    document.querySelectorAll(".tab-btn").forEach(function (btn) {
+      btn.onclick = function () {
+        state.activeTab = btn.getAttribute("data-tab");
+        state.editingId = null;
+        render();
+      };
+    });
+
+    document.querySelectorAll("[data-action]").forEach(function (btn) {
+      var action = btn.getAttribute("data-action");
+      var id = btn.getAttribute("data-id");
+      if (action === "choose") btn.onclick = function () { chooseTask(activeTab, id); };
+      if (action === "unchoose") btn.onclick = function () { unchooseTask(activeTab, id); };
+      if (action === "done") btn.onclick = function () { markDone(activeTab, id); };
+      if (action === "delete") btn.onclick = function () { deleteTask(activeTab, id); };
+      if (action === "edit") btn.onclick = function () {
+        state.editingId = id;
+        render();
+      };
+      if (action === "cancel-edit") btn.onclick = function () {
+        state.editingId = null;
+        render();
+      };
+      if (action === "save-edit") btn.onclick = function () {
+        var title = document.getElementById("edit-title-input").value.trim();
+        var desc = document.getElementById("edit-desc-input").value.trim();
+        if (!title) return;
+        saveEdit(activeTab, id, title, desc);
+        state.editingId = null;
+        render();
+      };
+      if (action === "up" || action === "down") btn.onclick = function () {
+        var ids = displayPending.map(function (t) { return t.id; });
+        var idx = ids.indexOf(id);
+        var swapIdx = idx + (action === "up" ? -1 : 1);
+        if (swapIdx < 0 || swapIdx >= ids.length) return;
+        var next = ids.slice();
+        var tmp = next[idx]; next[idx] = next[swapIdx]; next[swapIdx] = tmp;
+        reorderPending(activeTab, next);
+      };
+    });
+
+    var addForm = document.getElementById("add-form");
+    if (addForm) {
+      addForm.onsubmit = function (e) {
+        e.preventDefault();
+        var title = document.getElementById("new-title").value.trim();
+        var desc = document.getElementById("new-desc").value.trim();
+        if (!title) return;
+        addTask(activeTab, title, desc);
+      };
+    }
+
+    var archiveToggle = document.getElementById("toggle-archive");
+    if (archiveToggle) archiveToggle.onclick = function () {
+      state.showArchive = !state.showArchive;
+      render();
+    };
+
+    // Pointer-based drag reordering (works with touch on iOS)
+    document.querySelectorAll('[data-action="drag-handle"]').forEach(function (handle) {
+      var id = handle.getAttribute("data-id");
+      handle.onpointerdown = function (e) {
+        handle.setPointerCapture(e.pointerId);
+        state.dragId = id;
+        state.dragOrderIds = displayPending.map(function (t) { return t.id; });
+        render();
+      };
+    });
+    document.addEventListener("pointermove", function (e) {
+      if (!state.dragId || !state.dragOrderIds) return;
+      var y = e.clientY;
+      var closestId = null, closestDist = Infinity;
+      state.dragOrderIds.forEach(function (id) {
+        var el = document.querySelector('[data-row-id="' + id + '"]');
+        if (!el) return;
+        var rect = el.getBoundingClientRect();
+        var center = rect.top + rect.height / 2;
+        var dist = Math.abs(y - center);
+        if (dist < closestDist) { closestDist = dist; closestId = id; }
+      });
+      if (closestId && closestId !== state.dragId) {
+        var from = state.dragOrderIds.indexOf(state.dragId);
+        var to = state.dragOrderIds.indexOf(closestId);
+        if (from !== -1 && to !== -1 && from !== to) {
+          var next = state.dragOrderIds.slice();
+          next.splice(from, 1);
+          next.splice(to, 0, state.dragId);
+          state.dragOrderIds = next;
+          render();
+        }
+      }
+    });
+    document.addEventListener("pointerup", function () {
+      if (state.dragId && state.dragOrderIds) reorderPending(activeTab, state.dragOrderIds);
+      state.dragId = null;
+      state.dragOrderIds = null;
+    });
+    document.addEventListener("pointercancel", function () {
+      state.dragId = null;
+      state.dragOrderIds = null;
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
