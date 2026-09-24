@@ -25,8 +25,20 @@
   };
 </script>
 
+<script>
+  // Map each partner's login email to their tab/person id in the app.
+  // Create these two users in Firebase Console -> Authentication ->
+  // Sign-in method -> Email/Password (enable it), then the Users tab ->
+  // Add user, once per person.
+  window.USER_MAP = {
+    "user1@pick-a-task.internal": "lukas",
+    "user2@pick-a-task.internal": "aga"
+  };
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap');
@@ -101,10 +113,40 @@
   .banner { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
   .banner.error { background: #FBE9E4; color: #8A3A24; }
   .banner.setup { background: #FFF6DC; color: #6B5417; }
+
+  .auth-screen {
+    position: fixed; inset: 0; background: #EFEAE0; display: flex;
+    align-items: center; justify-content: center; padding: 20px; z-index: 100;
+  }
+  .auth-form {
+    background: #FBF9F4; border: 1px solid #E4DECE; border-radius: 12px;
+    padding: 28px 24px; width: 100%; max-width: 320px; text-align: center;
+  }
+  .auth-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+  .auth-form input {
+    width: 100%; border: 1px solid #E4DECE; border-radius: 7px; padding: 10px 12px;
+    font-size: 16px; background: #fff; margin-bottom: 12px; text-align: left;
+  }
+  .auth-form .btn-primary { width: 100%; padding: 10px; font-size: 14px; background: #2F6659; }
+  .auth-error { color: #8A3A24; font-size: 12px; margin-top: 10px; }
+  .sign-out-btn {
+    position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 90;
+    background: none; border: none; color: #8A8272; font-size: 12px; padding: 6px 8px;
+  }
 </style>
 </head>
 <body>
-  <div id="app">Loading…</div>
+  <div id="auth-screen" class="auth-screen">
+    <form id="auth-form" class="auth-form">
+      <div class="auth-title">Sign in</div>
+      <input type="email" id="auth-email" placeholder="Email" autocomplete="username" />
+      <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" />
+      <button type="submit" class="btn-primary">Sign in</button>
+      <div class="auth-error" id="auth-error" style="display:none;"></div>
+    </form>
+  </div>
+  <button id="sign-out-btn" class="sign-out-btn" style="display:none;">Sign out</button>
+  <div id="app" style="display:none;">Loading…</div>
 
 <script>
 (function () {
@@ -119,12 +161,14 @@
     { title: "Assemble the new bookshelf", description: "Box's been in the hallway for two weeks now." }
   ];
 
-  var appEl = document.getElementById("app");
   var cfg = window.FIREBASE_CONFIG;
   var configLooksUnset = !cfg || cfg.apiKey === "PASTE_YOUR_API_KEY";
 
   if (configLooksUnset) {
-    appEl.innerHTML =
+    document.getElementById("auth-screen").style.display = "none";
+    var appElEarly = document.getElementById("app");
+    appElEarly.style.display = "";
+    appElEarly.innerHTML =
       '<div class="banner setup">' +
       '<strong>Setup needed.</strong> Open index.html and paste your Firebase config ' +
       'near the top of the file (see SETUP.md for the exact steps), then reload this page.' +
@@ -134,9 +178,14 @@
 
   firebase.initializeApp(cfg);
   var db = firebase.database();
+  var auth = firebase.auth();
+  var booted = false;
+
+  function boot(initialPersonId) {
+  var appEl = document.getElementById("app");
 
   var state = {
-    activeTab: "lukas",
+    activeTab: initialPersonId || "lukas",
     tasks: { lukas: null, aga: null }, // null = not loaded yet
     editingId: null,
     editDraft: { title: "", description: "" },
@@ -458,6 +507,52 @@
   }
 
   render();
+  }
+
+  auth.onAuthStateChanged(function (user) {
+    var authScreen = document.getElementById("auth-screen");
+    var signOutBtn = document.getElementById("sign-out-btn");
+    var appEl = document.getElementById("app");
+    var errEl = document.getElementById("auth-error");
+
+    if (user) {
+      var personId = window.USER_MAP && window.USER_MAP[user.email];
+      if (!personId) {
+        errEl.textContent = "This account isn't linked to a profile yet — check USER_MAP in index.html.";
+        errEl.style.display = "block";
+        auth.signOut();
+        return;
+      }
+      errEl.style.display = "none";
+      authScreen.style.display = "none";
+      signOutBtn.style.display = "block";
+      appEl.style.display = "";
+      if (!booted) {
+        booted = true;
+        boot(personId);
+      }
+    } else {
+      authScreen.style.display = "flex";
+      signOutBtn.style.display = "none";
+      appEl.style.display = "none";
+    }
+  });
+
+  document.getElementById("auth-form").onsubmit = function (e) {
+    e.preventDefault();
+    var email = document.getElementById("auth-email").value.trim();
+    var pw = document.getElementById("auth-password").value;
+    var errEl = document.getElementById("auth-error");
+    errEl.style.display = "none";
+    auth.signInWithEmailAndPassword(email, pw).catch(function (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    });
+  };
+
+  document.getElementById("sign-out-btn").onclick = function () {
+    auth.signOut();
+  };
 })();
 </script>
 </body>
